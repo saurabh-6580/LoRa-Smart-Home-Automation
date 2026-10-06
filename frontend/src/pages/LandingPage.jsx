@@ -20,6 +20,18 @@ import SensorBadge from "../components/SensorBadge";
 import BenefitCard from "../components/BenefitCard";
 import houseImage from "../assets/smart-home-house.png";
 
+// =========================================================
+// API BASE URL
+// =========================================================
+// Local development:
+// API_BASE becomes "" and Vite proxy handles /api
+//
+// Vercel production:
+// VITE_API_URL = https://lora-smart-home-api.onrender.com
+// =========================================================
+
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 const fallback = {
   temp: 27.2,
   humidity: 65,
@@ -39,18 +51,38 @@ export default function LandingPage() {
 
     const load = async () => {
       try {
-        const response = await fetch("/api/status");
-        const data = await response.json();
-        if (mounted && data.current) {
-          setStatus(prev => ({ ...prev, ...data.current }));
+        const response = await fetch(
+          `${API_BASE}/api/status`
+        );
+
+        if (!response.ok) {
+          throw new Error("Unable to load smart home status");
         }
-      } catch {
-        // Landing page gracefully keeps preview values if backend is not running.
+
+        const data = await response.json();
+
+        if (mounted && data.current) {
+          setStatus((prev) => ({
+            ...prev,
+            ...data.current
+          }));
+        }
+      } catch (error) {
+        console.log(
+          "Landing page backend unavailable:",
+          error.message
+        );
+
+        // Keep fallback preview values when backend is unavailable.
       }
     };
 
     load();
-    const timer = setInterval(load, 5000);
+
+    const timer = setInterval(
+      load,
+      5000
+    );
 
     return () => {
       mounted = false;
@@ -64,45 +96,91 @@ export default function LandingPage() {
 
       <main className="hero">
         <section className="hero-copy">
+
           <div className="technology-pill">
             <Wifi size={14} />
+
             Hybrid Wi-Fi + LoRa Technology
           </div>
 
           <h1>
             Smart Home Automation
             <br />
-            that Works <span>Everywhere</span>
+
+            that Works{" "}
+
+            <span>
+              Everywhere
+            </span>
           </h1>
 
           <p className="hero-description">
-            Monitor your home environment and control appliances using Wi-Fi
-            from anywhere on your local network, or LoRa when Wi-Fi is unavailable.
+            Monitor your home environment and control appliances
+            using Wi-Fi from anywhere on your local network, or
+            LoRa when Wi-Fi is unavailable.
           </p>
 
           <div className="hero-buttons">
-            <Link to="/" className="hero-btn primary">
+
+            <Link
+              to="/"
+              className="hero-btn primary"
+            >
               <Home size={18} />
+
               Home
             </Link>
 
-            <Link to="/dashboard" className="hero-btn secondary">
+            <Link
+              to="/dashboard"
+              className="hero-btn secondary"
+            >
               <LayoutDashboard size={18} />
+
               Dashboard
             </Link>
+
           </div>
 
           <div className="benefit-row">
-            <BenefitCard icon={Wifi} title="Hybrid Control" subtitle="Wi-Fi + LoRa" tone="blue" />
-            <BenefitCard icon={Leaf} title="Energy Efficient" subtitle="Save Energy" tone="green" />
-            <BenefitCard icon={ShieldCheck} title="Secure & Reliable" subtitle="Always Protected" tone="orange" />
-            <BenefitCard icon={Activity} title="Real-time Monitor" subtitle="Live Data & Alerts" tone="purple" />
+
+            <BenefitCard
+              icon={Wifi}
+              title="Hybrid Control"
+              subtitle="Wi-Fi + LoRa"
+              tone="blue"
+            />
+
+            <BenefitCard
+              icon={Leaf}
+              title="Energy Efficient"
+              subtitle="Save Energy"
+              tone="green"
+            />
+
+            <BenefitCard
+              icon={ShieldCheck}
+              title="Secure & Reliable"
+              subtitle="Always Protected"
+              tone="orange"
+            />
+
+            <BenefitCard
+              icon={Activity}
+              title="Real-time Monitor"
+              subtitle="Live Data & Alerts"
+              tone="purple"
+            />
+
           </div>
         </section>
 
         <section className="hero-visual">
+
           <div className="house-stage">
+
             <div className="soft-orb orb-a" />
+
             <div className="soft-orb orb-b" />
 
             <img
@@ -129,7 +207,11 @@ export default function LandingPage() {
 
             <SensorBadge
               icon={Fan}
-              value={status.fan ? "ON" : "OFF"}
+              value={
+                status.fan
+                  ? "ON"
+                  : "OFF"
+              }
               label="Smart Fan"
               className="badge-fan"
               tone="green"
@@ -145,8 +227,16 @@ export default function LandingPage() {
 
             <SensorBadge
               icon={Lock}
-              value={status.doorLocked ? "Door Locked" : "Door Unlocked"}
-              label={status.doorLocked ? "Secure" : "Open"}
+              value={
+                status.doorLocked
+                  ? "Door Locked"
+                  : "Door Unlocked"
+              }
+              label={
+                status.doorLocked
+                  ? "Secure"
+                  : "Open"
+              }
               className="badge-door"
               tone="orange"
             />
@@ -154,18 +244,29 @@ export default function LandingPage() {
             <SensorBadge
               icon={Sun}
               value="Outdoor Light"
-              label={status.outdoorMode === "auto" ? "Auto Mode" : "Manual Mode"}
+              label={
+                status.outdoorMode === "auto"
+                  ? "Auto Mode"
+                  : "Manual Mode"
+              }
               className="badge-outdoor"
               tone="orange"
             />
 
             <span className="connector connector-temp" />
+
             <span className="connector connector-humidity green-line" />
+
             <span className="connector connector-fan green-line" />
+
             <span className="connector connector-lora green-line" />
+
             <span className="connector connector-door orange-line" />
+
             <span className="connector connector-outdoor orange-line" />
+
           </div>
+
         </section>
       </main>
     </div>

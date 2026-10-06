@@ -1,5 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import {
+  useEffect,
+  useMemo,
+  useState
+} from "react";
+
+import {
+  Link,
+  NavLink
+} from "react-router-dom";
 
 import {
   Activity,
@@ -14,7 +22,7 @@ import {
   Sun,
   Thermometer,
   Unlock,
-  Wifi,
+  Wifi
 } from "lucide-react";
 
 import {
@@ -25,50 +33,98 @@ import {
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis,
+  YAxis
 } from "recharts";
 
-/* =========================================================
-   API HELPER
-========================================================= */
+// =========================================================
+// API CONFIGURATION
+// =========================================================
+//
+// Local development:
+// API_BASE = ""
+// Calls become:
+// /api/status
+//
+// Vercel production:
+// VITE_API_URL =
+// https://lora-smart-home-api.onrender.com
+//
+// Calls become:
+// https://lora-smart-home-api.onrender.com/api/status
+//
+// =========================================================
 
-async function api(path, options = {}) {
-  const response = await fetch(`/api${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    ...options,
-  });
+const API_BASE =
+  import.meta.env.VITE_API_URL || "";
 
-  const body = await response.json();
+// =========================================================
+// API HELPER
+// =========================================================
+
+async function api(
+  path,
+  options = {}
+) {
+  const response = await fetch(
+    `${API_BASE}/api${path}`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      ...options,
+    }
+  );
+
+  let body;
+
+  try {
+    body = await response.json();
+  } catch {
+    body = {
+      message:
+        "Backend returned an invalid response"
+    };
+  }
 
   if (!response.ok) {
-    throw new Error(body.message || "Request failed");
+    throw new Error(
+      body.message ||
+      `Request failed (${response.status})`
+    );
   }
 
   return body;
 }
 
-/* =========================================================
-   TOGGLE SWITCH
-========================================================= */
+// =========================================================
+// TOGGLE SWITCH
+// =========================================================
 
-function Toggle({ on, disabled = false, onClick }) {
+function Toggle({
+  on,
+  disabled = false,
+  onClick
+}) {
   return (
     <button
       className={`toggle ${on ? "on" : ""}`}
       disabled={disabled}
       onClick={onClick}
-      aria-label={on ? "Turn off" : "Turn on"}
+      aria-label={
+        on
+          ? "Turn off"
+          : "Turn on"
+      }
     >
       <span />
     </button>
   );
 }
 
-/* =========================================================
-   DEVICE CARD
-========================================================= */
+// =========================================================
+// DEVICE CARD
+// =========================================================
 
 function DeviceCard({
   icon: Icon,
@@ -77,149 +133,277 @@ function DeviceCard({
   on,
   disabled = false,
   onToggle,
-  tone = "blue",
+  tone = "blue"
 }) {
   return (
-    <article className={`device-card ${on ? "active" : ""}`}>
+    <article
+      className={`device-card ${
+        on ? "active" : ""
+      }`}
+    >
+
       <div className="device-top">
-        <span className={`device-icon ${tone}`}>
+
+        <span
+          className={`device-icon ${tone}`}
+        >
           <Icon size={26} />
         </span>
 
-        <Toggle on={on} disabled={disabled} onClick={onToggle} />
+        <Toggle
+          on={on}
+          disabled={disabled}
+          onClick={onToggle}
+        />
+
       </div>
 
-      <h3>{title}</h3>
+      <h3>
+        {title}
+      </h3>
 
-      <p>{subtitle}</p>
+      <p>
+        {subtitle}
+      </p>
 
       <div className="device-state-row">
-        <span className={`device-state-dot ${on ? "on" : ""}`} />
 
-        <span className={on ? "device-on" : "device-off"}>
+        <span
+          className={`device-state-dot ${
+            on ? "on" : ""
+          }`}
+        />
+
+        <span
+          className={
+            on
+              ? "device-on"
+              : "device-off"
+          }
+        >
           {on ? "ON" : "OFF"}
         </span>
+
       </div>
+
     </article>
   );
 }
 
-/* =========================================================
-   DASHBOARD PAGE
-========================================================= */
+// =========================================================
+// DASHBOARD PAGE
+// =========================================================
 
 export default function DashboardPage() {
-  const [payload, setPayload] = useState(null);
 
-  const [error, setError] = useState("");
+  const [
+    payload,
+    setPayload
+  ] = useState(null);
 
-  const [loadingDevice, setLoadingDevice] = useState("");
+  const [
+    error,
+    setError
+  ] = useState("");
 
-  /* =======================================================
-     LOAD STATUS
-  ======================================================= */
+  const [
+    loadingDevice,
+    setLoadingDevice
+  ] = useState("");
+
+  // =======================================================
+  // LOAD STATUS
+  // =======================================================
 
   const loadStatus = async () => {
+
     try {
-      const data = await api("/status");
+
+      const data =
+        await api("/status");
 
       setPayload(data);
 
       setError("");
+
     } catch (err) {
-      setError(err.message);
+
+      console.error(
+        "Status error:",
+        err
+      );
+
+      setError(
+        err.message
+      );
+
     }
   };
 
-  /* =======================================================
-     AUTO REFRESH
-  ======================================================= */
+  // =======================================================
+  // AUTO REFRESH
+  // =======================================================
 
   useEffect(() => {
+
     loadStatus();
 
-    const timer = setInterval(loadStatus, 2500);
+    const timer =
+      setInterval(
+        loadStatus,
+        2500
+      );
 
-    return () => clearInterval(timer);
+    return () =>
+      clearInterval(timer);
+
   }, []);
 
-  const status = payload?.current || {};
+  const status =
+    payload?.current || {};
 
-  /* =======================================================
-     CHART DATA
-  ======================================================= */
+  // =======================================================
+  // CHART DATA
+  // =======================================================
 
-  const chartData = useMemo(() => {
-    if (!payload?.history) {
-      return [];
-    }
+  const chartData =
+    useMemo(() => {
 
-    return payload.history.labels.map((time, index) => ({
-      time,
+      if (
+        !payload?.history?.labels
+      ) {
+        return [];
+      }
 
-      temperature: payload.history.temperature[index],
+      return payload.history.labels.map(
+        (time, index) => ({
+          time,
 
-      humidity: payload.history.humidity[index],
-    }));
-  }, [payload]);
+          temperature:
+            payload.history
+              .temperature?.[index],
 
-  /* =======================================================
-     DEVICE CONTROL
-  ======================================================= */
+          humidity:
+            payload.history
+              .humidity?.[index],
+        })
+      );
 
-  const control = async (device, state) => {
-    try {
-      setLoadingDevice(device);
+    }, [payload]);
 
-      await api("/control", {
-        method: "POST",
+  // =======================================================
+  // DEVICE CONTROL
+  // =======================================================
 
-        body: JSON.stringify({
-          device,
-          state,
-        }),
-      });
+  const control =
+    async (
+      device,
+      state
+    ) => {
 
-      await loadStatus();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoadingDevice("");
-    }
-  };
+      try {
 
-  /* =======================================================
-     OUTDOOR MODE
-  ======================================================= */
+        setLoadingDevice(
+          device
+        );
 
-  const setOutdoorMode = async (mode) => {
-    try {
-      setLoadingDevice("outdoorMode");
+        setError("");
 
-      await api("/outdoor/mode", {
-        method: "POST",
+        await api(
+          "/control",
+          {
+            method: "POST",
 
-        body: JSON.stringify({
-          mode,
-        }),
-      });
+            body:
+              JSON.stringify({
+                device,
+                state
+              }),
+          }
+        );
 
-      await loadStatus();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoadingDevice("");
-    }
-  };
+        await loadStatus();
+
+      } catch (err) {
+
+        console.error(
+          "Control error:",
+          err
+        );
+
+        setError(
+          err.message
+        );
+
+      } finally {
+
+        setLoadingDevice("");
+
+      }
+    };
+
+  // =======================================================
+  // OUTDOOR MODE
+  // =======================================================
+
+  const setOutdoorMode =
+    async (mode) => {
+
+      try {
+
+        setLoadingDevice(
+          "outdoorMode"
+        );
+
+        setError("");
+
+        await api(
+          "/outdoor/mode",
+          {
+            method: "POST",
+
+            body:
+              JSON.stringify({
+                mode
+              }),
+          }
+        );
+
+        await loadStatus();
+
+      } catch (err) {
+
+        console.error(
+          "Outdoor mode error:",
+          err
+        );
+
+        setError(
+          err.message
+        );
+
+      } finally {
+
+        setLoadingDevice("");
+
+      }
+    };
 
   return (
+
     <div className="dashboard-page">
+
       {/* ===================================================
           NAVBAR
       =================================================== */}
 
       <header className="dashboard-navbar">
-        <Link to="/" className="brand">
+
+        <Link
+          to="/"
+          className="brand"
+        >
+
           <span className="brand-icon">
             <House size={24} />
           </span>
@@ -227,26 +411,36 @@ export default function DashboardPage() {
           <span className="brand-text">
             LoRa<span>Nest</span>
           </span>
+
         </Link>
 
-        {/* SAME NAVIGATION AS LANDING PAGE */}
-
         <div className="nav-links">
+
           <NavLink
             to="/"
             end
-            className={({ isActive }) => (isActive ? "active" : "")}
+            className={({ isActive }) =>
+              isActive
+                ? "active"
+                : ""
+            }
           >
             Home
           </NavLink>
 
           <NavLink
             to="/dashboard"
-            className={({ isActive }) => (isActive ? "active" : "")}
+            className={({ isActive }) =>
+              isActive
+                ? "active"
+                : ""
+            }
           >
             Dashboard
           </NavLink>
+
         </div>
+
       </header>
 
       {/* ===================================================
@@ -254,160 +448,287 @@ export default function DashboardPage() {
       =================================================== */}
 
       <main className="dashboard-content">
+
         {/* =================================================
             DASHBOARD HEADER
         ================================================= */}
 
         <section className="dashboard-header">
-          <div className="dashboard-heading">
-            <span className="dashboard-kicker">SMART HOME CONTROL CENTER</span>
 
-            <h1>Smart Home Dashboard</h1>
+          <div className="dashboard-heading">
+
+            <span className="dashboard-kicker">
+              SMART HOME CONTROL CENTER
+            </span>
+
+            <h1>
+              Smart Home Dashboard
+            </h1>
 
             <p>
-              Monitor your environment, control appliances and check your LoRa
-              system in real-time.
+              Monitor your environment,
+              control appliances and check
+              your LoRa system in real-time.
             </p>
+
           </div>
 
           {/* SYSTEM INFORMATION */}
 
           <div className="system-information">
+
             <div className="connection-pills">
+
               <span className="status-pill success">
+
                 <span className="live-dot" />
+
                 System Online
+
               </span>
 
               <span
                 className={`status-pill ${
-                  status.wifiConnected ? "info" : "muted"
+                  status.wifiConnected
+                    ? "info"
+                    : "muted"
                 }`}
               >
+
                 <Wifi size={15} />
-                Wi-Fi {status.wifiConnected ? "Connected" : "Offline"}
+
+                Wi-Fi{" "}
+
+                {status.wifiConnected
+                  ? "Connected"
+                  : "Offline"}
+
               </span>
 
               <span
                 className={`status-pill ${
-                  status.loraConnected ? "purple" : "muted"
+                  status.loraConnected
+                    ? "purple"
+                    : "muted"
                 }`}
               >
+
                 <Radio size={15} />
-                LoRa {status.loraConnected ? "Connected" : "Waiting"}
+
+                LoRa{" "}
+
+                {status.loraConnected
+                  ? "Connected"
+                  : "Waiting"}
+
               </span>
+
             </div>
 
             <div className="dashboard-date">
+
               <span>
-                <CalendarDays size={16} />
+
+                <CalendarDays
+                  size={16}
+                />
 
                 {payload?.date || "--"}
+
               </span>
 
               <span>
-                <Clock3 size={16} />
+
+                <Clock3
+                  size={16}
+                />
 
                 {payload?.time || "--"}
+
               </span>
+
             </div>
+
           </div>
+
         </section>
 
         {/* ERROR */}
 
-        {error && <div className="error-banner">{error}</div>}
+        {error && (
+
+          <div className="error-banner">
+            Backend connection error:{" "}
+            {error}
+          </div>
+
+        )}
 
         {/* =================================================
             SENSOR METRICS
         ================================================= */}
 
         <section className="metric-grid">
+
           {/* TEMPERATURE */}
 
           <article className="metric-card">
+
             <span className="metric-icon temp">
+
               <Thermometer size={30} />
+
             </span>
 
             <div className="metric-information">
-              <span className="metric-label">Temperature</span>
+
+              <span className="metric-label">
+                Temperature
+              </span>
 
               <strong>
+
                 {status.temp ?? "--"}
 
-                <small>°C</small>
+                <small>
+                  °C
+                </small>
+
               </strong>
 
-              <p>Indoor Sensor</p>
+              <p>
+                Indoor Sensor
+              </p>
+
             </div>
 
-            <div className="mini-wave temperature-wave">∿∿∿</div>
+            <div className="mini-wave temperature-wave">
+              ∿∿∿
+            </div>
+
           </article>
 
           {/* HUMIDITY */}
 
           <article className="metric-card">
+
             <span className="metric-icon humidity">
+
               <Droplets size={30} />
+
             </span>
 
             <div className="metric-information">
-              <span className="metric-label">Humidity</span>
+
+              <span className="metric-label">
+                Humidity
+              </span>
 
               <strong>
+
                 {status.humidity ?? "--"}
 
-                <small>%</small>
+                <small>
+                  %
+                </small>
+
               </strong>
 
-              <p>Indoor Sensor</p>
+              <p>
+                Indoor Sensor
+              </p>
+
             </div>
 
-            <div className="mini-wave humidity-wave">∿∿∿</div>
+            <div className="mini-wave humidity-wave">
+              ∿∿∿
+            </div>
+
           </article>
 
           {/* LDR */}
 
           <article className="metric-card">
+
             <span className="metric-icon light">
+
               <Sun size={30} />
+
             </span>
 
             <div className="metric-information">
-              <span className="metric-label">Ambient Light</span>
 
-              <strong>{status.ldr ?? "--"}</strong>
+              <span className="metric-label">
+                Ambient Light
+              </span>
 
-              <p className="good-text">{status.environment || "Waiting"}</p>
+              <strong>
+                {status.ldr ?? "--"}
+              </strong>
+
+              <p className="good-text">
+
+                {status.environment ||
+                  "Waiting"}
+
+              </p>
+
             </div>
 
-            <div className="mini-wave light-wave">∿∿∿</div>
+            <div className="mini-wave light-wave">
+              ∿∿∿
+            </div>
+
           </article>
 
           {/* LORA */}
 
           <article className="metric-card">
+
             <span className="metric-icon signal">
+
               <Radio size={30} />
+
             </span>
 
             <div className="metric-information">
-              <span className="metric-label">LoRa Signal</span>
+
+              <span className="metric-label">
+                LoRa Signal
+              </span>
 
               <strong>
+
                 {status.loraRssi ?? "--"}
 
-                <small>dBm</small>
+                <small>
+                  dBm
+                </small>
+
               </strong>
 
-              <p className={status.loraConnected ? "good-text" : ""}>
-                {status.loraConnected ? "Good signal" : "No packet"}
+              <p
+                className={
+                  status.loraConnected
+                    ? "good-text"
+                    : ""
+                }
+              >
+
+                {status.loraConnected
+                  ? "Good signal"
+                  : "No packet"}
+
               </p>
+
             </div>
 
-            <div className="mini-wave signal-wave">∿∿∿</div>
+            <div className="mini-wave signal-wave">
+              ∿∿∿
+            </div>
+
           </article>
+
         </section>
 
         {/* =================================================
@@ -415,35 +736,62 @@ export default function DashboardPage() {
         ================================================= */}
 
         <section className="control-layout">
+
           {/* DEVICE CONTROL */}
 
           <article className="panel controls-panel">
-            <div className="panel-header">
-              <div>
-                <h2>Devices Control</h2>
 
-                <p>Control your home appliances remotely.</p>
+            <div className="panel-header">
+
+              <div>
+
+                <h2>
+                  Devices Control
+                </h2>
+
+                <p>
+                  Control your home
+                  appliances remotely.
+                </p>
+
               </div>
 
               <span className="panel-count">
+
                 {
-                  [status.light, status.fan, status.outdoorLight].filter(
-                    Boolean,
-                  ).length
+                  [
+                    status.light,
+                    status.fan,
+                    status.outdoorLight
+                  ].filter(Boolean).length
                 }{" "}
+
                 active
+
               </span>
+
             </div>
 
             <div className="device-grid">
+
               <DeviceCard
                 icon={Lightbulb}
                 title="Room Light"
                 subtitle="Living area"
                 tone="green"
-                on={Boolean(status.light)}
-                disabled={loadingDevice === "light"}
-                onToggle={() => control("light", !status.light)}
+                on={Boolean(
+                  status.light
+                )}
+                disabled={
+                  loadingDevice ===
+                  "light"
+                }
+                onToggle={() =>
+                  control(
+                    "light",
+                    !status.light
+                  )
+                }
               />
 
               <DeviceCard
@@ -451,40 +799,72 @@ export default function DashboardPage() {
                 title="Ceiling Fan"
                 subtitle="Indoor fan"
                 tone="blue"
-                on={Boolean(status.fan)}
-                disabled={loadingDevice === "fan"}
-                onToggle={() => control("fan", !status.fan)}
+                on={Boolean(
+                  status.fan
+                )}
+                disabled={
+                  loadingDevice ===
+                  "fan"
+                }
+                onToggle={() =>
+                  control(
+                    "fan",
+                    !status.fan
+                  )
+                }
               />
 
               <DeviceCard
                 icon={Sun}
                 title="Outdoor Light"
                 subtitle={
-                  status.outdoorMode === "auto"
+                  status.outdoorMode ===
+                  "auto"
                     ? "LDR automatic mode"
                     : "Manual control"
                 }
                 tone="orange"
-                on={Boolean(status.outdoorLight)}
+                on={Boolean(
+                  status.outdoorLight
+                )}
                 disabled={
-                  status.outdoorMode === "auto" ||
-                  loadingDevice === "outdoorLight"
+                  status.outdoorMode ===
+                    "auto" ||
+                  loadingDevice ===
+                    "outdoorLight"
                 }
-                onToggle={() => control("outdoorLight", !status.outdoorLight)}
+                onToggle={() =>
+                  control(
+                    "outdoorLight",
+                    !status.outdoorLight
+                  )
+                }
               />
 
               {/* DOOR */}
 
               <article
-                className={`device-card ${!status.doorLocked ? "active" : ""}`}
+                className={`device-card ${
+                  !status.doorLocked
+                    ? "active"
+                    : ""
+                }`}
               >
+
                 <div className="device-top">
+
                   <span className="device-icon orange">
+
                     {status.doorLocked ? (
+
                       <Lock size={26} />
+
                     ) : (
+
                       <Unlock size={26} />
+
                     )}
+
                   </span>
 
                   <span
@@ -494,29 +874,57 @@ export default function DashboardPage() {
                         : "door-status unlocked"
                     }
                   >
-                    {status.doorLocked ? "LOCKED" : "UNLOCKED"}
+
+                    {status.doorLocked
+                      ? "LOCKED"
+                      : "UNLOCKED"}
+
                   </span>
+
                 </div>
 
-                <h3>Door Lock</h3>
+                <h3>
+                  Door Lock
+                </h3>
 
-                <p>Servo access control</p>
+                <p>
+                  Servo access control
+                </p>
 
                 <button
                   className="door-button"
-                  disabled={loadingDevice === "door"}
-                  onClick={() => control("door", status.doorLocked)}
+                  disabled={
+                    loadingDevice ===
+                    "door"
+                  }
+                  onClick={() =>
+                    control(
+                      "door",
+                      status.doorLocked
+                    )
+                  }
                 >
+
                   {status.doorLocked ? (
+
                     <Unlock size={17} />
+
                   ) : (
+
                     <Lock size={17} />
+
                   )}
 
-                  {status.doorLocked ? "Unlock Door" : "Lock Door"}
+                  {status.doorLocked
+                    ? "Unlock Door"
+                    : "Lock Door"}
+
                 </button>
+
               </article>
+
             </div>
+
           </article>
 
           {/* =================================================
@@ -524,57 +932,127 @@ export default function DashboardPage() {
           ================================================= */}
 
           <article className="panel automation-panel">
-            <div className="panel-header">
-              <div>
-                <h2>Outdoor Light Automation</h2>
 
-                <p>LDR based smart lighting.</p>
+            <div className="panel-header">
+
+              <div>
+
+                <h2>
+                  Outdoor Light Automation
+                </h2>
+
+                <p>
+                  LDR based smart lighting.
+                </p>
+
               </div>
+
             </div>
 
             <div className="mode-switch">
+
               <button
-                className={status.outdoorMode === "auto" ? "active" : ""}
-                onClick={() => setOutdoorMode("auto")}
+                className={
+                  status.outdoorMode ===
+                  "auto"
+                    ? "active"
+                    : ""
+                }
+                disabled={
+                  loadingDevice ===
+                  "outdoorMode"
+                }
+                onClick={() =>
+                  setOutdoorMode(
+                    "auto"
+                  )
+                }
               >
+
                 Automatic
+
               </button>
 
               <button
-                className={status.outdoorMode === "manual" ? "active" : ""}
-                onClick={() => setOutdoorMode("manual")}
+                className={
+                  status.outdoorMode ===
+                  "manual"
+                    ? "active"
+                    : ""
+                }
+                disabled={
+                  loadingDevice ===
+                  "outdoorMode"
+                }
+                onClick={() =>
+                  setOutdoorMode(
+                    "manual"
+                  )
+                }
               >
+
                 Manual
+
               </button>
+
             </div>
 
             <div className="auto-visual">
+
               <span className="sun-circle">
+
                 <Sun size={44} />
+
               </span>
 
-              <span className="environment-label">Environment</span>
+              <span className="environment-label">
+                Environment
+              </span>
 
-              <strong>{status.environment || "Waiting"}</strong>
+              <strong>
+
+                {status.environment ||
+                  "Waiting"}
+
+              </strong>
 
               <p>
-                LDR Value: <b>{status.ldr ?? "--"}</b>
+
+                LDR Value:{" "}
+
+                <b>
+                  {status.ldr ?? "--"}
+                </b>
+
               </p>
 
               <div className="automation-description">
-                {status.outdoorMode === "auto" ? (
+
+                {status.outdoorMode ===
+                "auto" ? (
+
                   <>
-                    Outdoor light is automatically controlled by the LDR sensor.
+                    Outdoor light is
+                    automatically controlled
+                    by the LDR sensor.
                   </>
+
                 ) : (
+
                   <>
-                    Automatic LDR control is disabled. Use the Outdoor Light
-                    switch.
+                    Automatic LDR control is
+                    disabled. Use the Outdoor
+                    Light switch.
                   </>
+
                 )}
+
               </div>
+
             </div>
+
           </article>
+
         </section>
 
         {/* =================================================
@@ -582,26 +1060,43 @@ export default function DashboardPage() {
         ================================================= */}
 
         <article className="panel chart-panel">
-          <div className="panel-header">
-            <div>
-              <h2>Environment History</h2>
 
-              <p>Recent temperature and humidity readings.</p>
+          <div className="panel-header">
+
+            <div>
+
+              <h2>
+                Environment History
+              </h2>
+
+              <p>
+                Recent temperature and
+                humidity readings.
+              </p>
+
             </div>
+
           </div>
 
           <div className="chart-box">
-            <ResponsiveContainer width="100%" height="100%">
+
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+            >
+
               <AreaChart
                 data={chartData}
                 margin={{
                   top: 20,
                   right: 20,
                   left: 0,
-                  bottom: 5,
+                  bottom: 5
                 }}
               >
+
                 <defs>
+
                   <linearGradient
                     id="temperatureGradient"
                     x1="0"
@@ -609,9 +1104,19 @@ export default function DashboardPage() {
                     x2="0"
                     y2="1"
                   >
-                    <stop offset="5%" stopColor="#ff8b3d" stopOpacity={0.25} />
 
-                    <stop offset="95%" stopColor="#ff8b3d" stopOpacity={0} />
+                    <stop
+                      offset="5%"
+                      stopColor="#ff8b3d"
+                      stopOpacity={0.25}
+                    />
+
+                    <stop
+                      offset="95%"
+                      stopColor="#ff8b3d"
+                      stopOpacity={0}
+                    />
+
                   </linearGradient>
 
                   <linearGradient
@@ -621,25 +1126,39 @@ export default function DashboardPage() {
                     x2="0"
                     y2="1"
                   >
-                    <stop offset="5%" stopColor="#3478f6" stopOpacity={0.22} />
 
-                    <stop offset="95%" stopColor="#3478f6" stopOpacity={0} />
+                    <stop
+                      offset="5%"
+                      stopColor="#3478f6"
+                      stopOpacity={0.22}
+                    />
+
+                    <stop
+                      offset="95%"
+                      stopColor="#3478f6"
+                      stopOpacity={0}
+                    />
+
                   </linearGradient>
+
                 </defs>
 
-                <CartesianGrid strokeDasharray="4 4" stroke="#e8eef6" />
+                <CartesianGrid
+                  strokeDasharray="4 4"
+                  stroke="#e8eef6"
+                />
 
                 <XAxis
                   dataKey="time"
                   tick={{
-                    fontSize: 12,
+                    fontSize: 12
                   }}
                   stroke="#8795a8"
                 />
 
                 <YAxis
                   tick={{
-                    fontSize: 12,
+                    fontSize: 12
                   }}
                   stroke="#8795a8"
                 />
@@ -647,16 +1166,16 @@ export default function DashboardPage() {
                 <Tooltip
                   contentStyle={{
                     borderRadius: "12px",
-
-                    border: "1px solid #e5edf7",
-
-                    boxShadow: "0 12px 30px rgba(30,60,100,.10)",
+                    border:
+                      "1px solid #e5edf7",
+                    boxShadow:
+                      "0 12px 30px rgba(30,60,100,.10)"
                   }}
                 />
 
                 <Legend
                   wrapperStyle={{
-                    fontSize: "12px",
+                    fontSize: "12px"
                   }}
                 />
 
@@ -677,9 +1196,13 @@ export default function DashboardPage() {
                   strokeWidth={3}
                   fill="url(#humidityGradient)"
                 />
+
               </AreaChart>
+
             </ResponsiveContainer>
+
           </div>
+
         </article>
 
         {/* =================================================
@@ -687,37 +1210,84 @@ export default function DashboardPage() {
         ================================================= */}
 
         <article className="panel activity-panel">
-          <div className="panel-header">
-            <div>
-              <h2>Recent Activity</h2>
 
-              <p>Latest web, ESP32 and LoRa events.</p>
+          <div className="panel-header">
+
+            <div>
+
+              <h2>
+                Recent Activity
+              </h2>
+
+              <p>
+                Latest web, ESP32 and
+                LoRa events.
+              </p>
+
             </div>
+
           </div>
 
           <div className="activity-row">
-            {(payload?.activity || []).slice(0, 5).map((item, index) => (
-              <div className="activity-item" key={index}>
-                <span className="activity-icon">
-                  <Activity size={19} />
-                </span>
 
-                <div>
-                  <small>{item.time}</small>
+            {(payload?.activity || [])
+              .slice(0, 5)
+              .map(
+                (
+                  item,
+                  index
+                ) => (
 
-                  <strong>{item.message}</strong>
+                  <div
+                    className="activity-item"
+                    key={index}
+                  >
 
-                  <p>Via {item.source}</p>
-                </div>
+                    <span className="activity-icon">
+
+                      <Activity
+                        size={19}
+                      />
+
+                    </span>
+
+                    <div>
+
+                      <small>
+                        {item.time}
+                      </small>
+
+                      <strong>
+                        {item.message}
+                      </strong>
+
+                      <p>
+                        Via {item.source}
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                )
+              )}
+
+            {!payload
+              ?.activity
+              ?.length && (
+
+              <div className="empty-activity">
+                No activity recorded yet.
               </div>
-            ))}
 
-            {!payload?.activity?.length && (
-              <div className="empty-activity">No activity recorded yet.</div>
             )}
+
           </div>
+
         </article>
+
       </main>
+
     </div>
   );
 }
